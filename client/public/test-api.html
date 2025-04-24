@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test</title>
+    <script>
+        // Test with Fetch API
+        async function testSignupFetch() {
+            const data = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value
+            };
+            
+            document.getElementById('request').textContent = JSON.stringify(data, null, 2);
+            
+            try {
+                document.getElementById('response').textContent = "Sending request...";
+                
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                document.getElementById('response').textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('response').textContent = error.message;
+            }
+        }
+        
+        // Test with XMLHttpRequest for better debugging
+        function testSignupXHR() {
+            const data = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value
+            };
+            
+            document.getElementById('request').textContent = JSON.stringify(data, null, 2);
+            document.getElementById('response').textContent = "Sending request with XHR...";
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/auth/register', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    
+                    try {
+                        const result = JSON.parse(xhr.responseText);
+                        document.getElementById('response').textContent = JSON.stringify(result, null, 2);
+                    } catch (e) {
+                        document.getElementById('response').textContent = 'Failed to parse response: ' + xhr.responseText;
+                    }
+                }
+            };
+            
+            xhr.send(JSON.stringify(data));
+        }
+        
+        // Test with URL encoded form submission
+        function testSignupUrlEncoded() {
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            const urlEncodedData = `name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
+            document.getElementById('request').textContent = urlEncodedData;
+            document.getElementById('response').textContent = "Sending URL encoded form data...";
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/auth/register', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    
+                    try {
+                        const result = JSON.parse(xhr.responseText);
+                        document.getElementById('response').textContent = JSON.stringify(result, null, 2);
+                    } catch (e) {
+                        document.getElementById('response').textContent = 'Failed to parse response: ' + xhr.responseText;
+                    }
+                }
+            };
+            
+            xhr.send(urlEncodedData);
+        }
+    </script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { padding: 10px 15px; background: #4CAF50; color: white; border: none; cursor: pointer; margin-right: 10px; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow: auto; }
+        .buttons { margin: 20px 0; }
+        details { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>API Test</h1>
+    
+    <div class="form-group">
+        <label for="name">Name:</label>
+        <input type="text" id="name" value="Test User">
+    </div>
+    
+    <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" value="test@example.com">
+    </div>
+    
+    <div class="form-group">
+        <label for="password">Password:</label>
+        <input type="password" id="password" value="password123">
+    </div>
+    
+    <div class="buttons">
+        <button onclick="testSignupFetch()">Test with Fetch</button>
+        <button onclick="testSignupXHR()">Test with XHR</button>
+        <button onclick="testSignupUrlEncoded()">Test URL Encoded</button>
+    </div>
+    
+    <details>
+        <summary>Debugging Instructions</summary>
+        <p>
+            If you're seeing "Validation error" with fields showing as undefined, try:
+            <ol>
+                <li>Open browser developer tools (F12) and check the Network tab</li>
+                <li>Look at the exact request payload being sent</li>
+                <li>Try each button to test different HTTP client methods</li>
+                <li>Check server logs for how data is being received</li>
+                <li>The URL Encoded test is useful if your server's body parser is misconfigured</li>
+            </ol>
+        </p>
+    </details>
+    
+    <h3>Request:</h3>
+    <pre id="request"></pre>
+    
+    <h3>Response:</h3>
+    <pre id="response"></pre>
+</body>
+</html> 

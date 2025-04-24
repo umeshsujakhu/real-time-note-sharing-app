@@ -1,0 +1,124 @@
+import express, { Request, Response, NextFunction } from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import path from "path";
+import passport from "passport";
+import swaggerUi from "swagger-ui-express";
+import "reflect-metadata";
+import bodyParser from "body-parser";
+
+import routes from "./routes";
+import { initializeDatabase } from "./config/database";
+import { configurePassport } from "./config/passport";
+import { swaggerSpec } from "./config/swagger";
+
+// Load environment variables
+dotenv.config();
+
+// Create Express app
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+
+// CRITICAL FIX: Raw body capture middleware
+// This middleware must be registered BEFORE any body parsers
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.headers['content-type']?.includes('application/json')) {
+    let data = '';
+    req.on('data', chunk => {
+      data += chunk;
+    });
+    
+    req.on('end', () => {
+      try {
+        if (data) {
+          console.log('Raw request data captured:', data);
+          // Store raw data on request object
+          (req as any).rawBody = data;
+          
+          // Try to parse JSON
+          const jsonData = JSON.parse(data);
+          req.body = jsonData;
+          console.log('Successfully parsed JSON data:', jsonData);
+        }
+      } catch (e) {
+        console.error('Failed to parse raw JSON:', e);
+      }
+      next();
+    });
+  } else {
+    next();
+  }
+});
+
+// Standard body parsers as fallback
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Debug middleware to log request body and headers
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log("----------------------");
+  console.log("Incoming request:");
+  console.log("URL:", req.url);
+  console.log("Method:", req.method);
+  console.log("Content-Type:", req.headers["content-type"]);
+  console.log("Body after parsing:", req.body);
+  console.log("----------------------");
+  next();
+});
+
+// Serve static files
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
+// Initialize Passport
+app.use(passport.initialize());
+configurePassport();
+
+// API routes
+app.use("/api", routes);
+
+// Swagger documentation
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Health check
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK", message: "Server is running" });
+});
+
+// Error handling middleware
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error(err.stack);
+  res.status(500).json({
+    success: false,
+    message: "Internal Server Error",
+    error: process.env.NODE_ENV === "development" ? err.message : undefined,
+  });
+});
+
+// Start server
+const startServer = async () => {
+  try {
+    // Initialize database connection
+    try {
+      await initializeDatabase();
+      console.log("Database connected successfully");
+    } catch (dbError) {
+      console.error("Database connection failed:", dbError.message);
+      console.warn(
+        "Starting server without database connection. Some features may not work."
+      );
+    }
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log(`API Documentation: http://localhost:${PORT}/api-docs`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
+};
+
+startServer(); 

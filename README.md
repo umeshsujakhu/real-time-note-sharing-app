@@ -88,7 +88,7 @@ This will build and start all services (client, server, and PostgreSQL database)
 ## Development
 
 - Backend server runs on http://localhost:3000
-- Frontend client runs on http://localhost:3001
+- Frontend client runs on http://localhost:3002
 - API documentation is available at http://localhost:3000/api-docs
 
 ### Development Workflow

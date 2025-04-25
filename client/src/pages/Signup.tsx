@@ -1,157 +1,320 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Container,
+  Paper,
+  Divider,
+  Alert,
+  CircularProgress,
+  Link,
+  useTheme,
+  useMediaQuery,
+  Fade,
+} from "@mui/material";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 
 const Signup: React.FC = () => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const { signup, error, isLoading } = useAuthStore();
   const navigate = useNavigate();
-  const { signup, error, clearError, isLoading } = useAuthStore();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-  const [formError, setFormError] = useState("");
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-    clearError();
-    setFormError("");
-  };
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError("");
+    setFormError(null);
 
     // Basic validation
-    if (!formData.name || !formData.email || !formData.password) {
-      setFormError("All fields are required");
+    if (!name || !email || !password || !confirmPassword) {
+      setFormError("Please fill in all fields.");
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setFormError("Passwords do not match");
+    if (password !== confirmPassword) {
+      setFormError("Passwords do not match.");
       return;
     }
 
-    if (formData.password.length < 6) {
-      setFormError("Password must be at least 6 characters");
+    if (password.length < 6) {
+      setFormError("Password must be at least 6 characters long.");
       return;
     }
 
     try {
-      await signup(formData.name, formData.email, formData.password);
-      navigate("/");
+      setIsSubmitting(true);
+      await signup(name, email, password);
+      // Redirect will happen automatically if signup is successful
     } catch (err) {
-      // Error will be handled by the auth store
-      console.error("Signup form error:", err);
+      // Error is already handled by auth context
+      console.error("Signup failed:", err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
-          </h2>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="name" className="sr-only">
-                Full Name
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                placeholder="Full Name"
-                value={formData.name}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                value={formData.email}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={formData.password}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="confirmPassword" className="sr-only">
-                Confirm Password
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                placeholder="Confirm Password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-
-          {(error || formError) && (
-            <div className="text-red-500 text-sm text-center">
-              {formError || error}
-            </div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        background: "linear-gradient(135deg, #4f46e5 0%, #ec4899 100%)",
+        py: 4,
+      }}
+    >
+      <Container maxWidth="sm">
+        <Fade in timeout={800}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: "calc(100vh - 64px)",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                mb: 4,
+              }}
             >
-              {isLoading ? "Creating account..." : "Sign up"}
-            </button>
-          </div>
+              <Box
+                component="img"
+                src="/logo.svg"
+                alt="Notes App Logo"
+                sx={{
+                  width: isMobile ? 80 : 100,
+                  height: isMobile ? 80 : 100,
+                  mb: 2,
+                }}
+              />
+              <Typography
+                variant="h4"
+                component="h1"
+                align="center"
+                sx={{
+                  fontWeight: 700,
+                  color: "white",
+                  textShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                }}
+              >
+                Notes App
+              </Typography>
+              <Typography
+                variant="subtitle1"
+                align="center"
+                sx={{ color: "rgba(255,255,255,0.9)", mt: 1 }}
+              >
+                Create your account to get started
+              </Typography>
+            </Box>
 
-          <div className="text-sm text-center">
-            <span className="text-gray-500">Already have an account?</span>{" "}
-            <Link
-              to="/login"
-              className="font-medium text-primary-600 hover:text-primary-500"
+            <Paper
+              elevation={8}
+              sx={{
+                p: 4,
+                width: "100%",
+                borderRadius: 4,
+                backdropFilter: "blur(10px)",
+                backgroundColor: "rgba(255, 255, 255, 0.95)",
+                boxShadow:
+                  "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+              }}
             >
-              Sign in
-            </Link>
-          </div>
-        </form>
-      </div>
-    </div>
+              <Typography
+                variant="h5"
+                component="h2"
+                align="center"
+                color="primary"
+                sx={{ mb: 3, fontWeight: 600 }}
+              >
+                Create Account
+              </Typography>
+
+              {(error || formError) && (
+                <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+                  {formError || error}
+                </Alert>
+              )}
+
+              <Box component="form" onSubmit={handleSubmit} noValidate>
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  id="name"
+                  label="Full Name"
+                  name="name"
+                  autoComplete="name"
+                  autoFocus
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={isLoading || isSubmitting}
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  id="email"
+                  label="Email Address"
+                  name="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading || isSubmitting}
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  name="password"
+                  label="Password"
+                  type="password"
+                  id="password"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading || isSubmitting}
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  name="confirmPassword"
+                  label="Confirm Password"
+                  type="password"
+                  id="confirmPassword"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={isLoading || isSubmitting}
+                  sx={{ mb: 3 }}
+                />
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  sx={{
+                    mt: 1,
+                    mb: 3,
+                    py: 1.5,
+                    borderRadius: 2,
+                    fontSize: "1rem",
+                    fontWeight: 600,
+                    background:
+                      "linear-gradient(90deg, #4f46e5 0%, #6366f1 100%)",
+                    boxShadow:
+                      "0 4px 6px -1px rgba(79, 70, 229, 0.2), 0 2px 4px -1px rgba(79, 70, 229, 0.1)",
+                    "&:hover": {
+                      background:
+                        "linear-gradient(90deg, #4338ca 0%, #4f46e5 100%)",
+                    },
+                  }}
+                  disabled={isLoading || isSubmitting}
+                >
+                  {isLoading || isSubmitting ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    "Sign Up"
+                  )}
+                </Button>
+
+                <Divider sx={{ my: 3 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    OR
+                  </Typography>
+                </Divider>
+
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  sx={{
+                    mb: 2,
+                    py: 1.2,
+                    borderRadius: 2,
+                    borderColor: "rgba(0,0,0,0.1)",
+                    color: "text.primary",
+                    "&:hover": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      backgroundColor: "rgba(0,0,0,0.02)",
+                    },
+                  }}
+                  onClick={() => (window.location.href = "/api/auth/google")}
+                >
+                  <Box
+                    component="img"
+                    src="https://www.google.com/favicon.ico"
+                    alt="Google"
+                    sx={{ width: 20, height: 20, mr: 1 }}
+                  />
+                  Sign up with Google
+                </Button>
+
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  sx={{
+                    mb: 3,
+                    py: 1.2,
+                    borderRadius: 2,
+                    borderColor: "rgba(0,0,0,0.1)",
+                    color: "text.primary",
+                    "&:hover": {
+                      borderColor: "rgba(0,0,0,0.2)",
+                      backgroundColor: "rgba(0,0,0,0.02)",
+                    },
+                  }}
+                  onClick={() => (window.location.href = "/api/auth/facebook")}
+                >
+                  <Box
+                    component="img"
+                    src="https://www.facebook.com/favicon.ico"
+                    alt="Facebook"
+                    sx={{ width: 20, height: 20, mr: 1 }}
+                  />
+                  Sign up with Facebook
+                </Button>
+
+                <Box textAlign="center">
+                  <Typography variant="body2" color="text.secondary">
+                    Already have an account?{" "}
+                    <Link
+                      component={RouterLink}
+                      to="/login"
+                      sx={{
+                        color: "primary.main",
+                        fontWeight: 600,
+                        textDecoration: "none",
+                        "&:hover": {
+                          textDecoration: "underline",
+                        },
+                      }}
+                    >
+                      Sign In
+                    </Link>
+                  </Typography>
+                </Box>
+              </Box>
+            </Paper>
+          </Box>
+        </Fade>
+      </Container>
+    </Box>
   );
 };
 

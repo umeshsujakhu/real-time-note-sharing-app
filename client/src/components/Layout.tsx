@@ -21,8 +21,11 @@ import {
   MenuItem,
   Badge,
   Stack,
+  useTheme,
+  Tooltip,
+  Fade,
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { useTheme as useMuiTheme } from "@mui/material/styles";
 import {
   Menu as MenuIcon,
   NoteAdd as NoteAddIcon,
@@ -33,14 +36,15 @@ import {
   Logout as LogoutIcon,
   Search as SearchIcon,
   CheckBox as TaskIcon,
+  Settings as SettingsIcon,
 } from "@mui/icons-material";
 import { useAuthStore } from "../stores/authStore";
 import { useNoteStore } from "../stores/noteStore";
 
-const drawerWidth = 240;
+const drawerWidth = 280;
 
 const Layout: React.FC = () => {
-  const theme = useTheme();
+  const theme = useMuiTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -151,12 +155,37 @@ const Layout: React.FC = () => {
   ];
 
   const drawer = (
-    <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
+    <Box
+      sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        background: "linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%)",
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          p: 2,
+          gap: 1,
+        }}
+      >
+        <Box
+          component="img"
+          src="/logo-small.svg"
+          alt="Notes App Logo"
+          sx={{ width: 32, height: 32 }}
+        />
+        <Typography
+          variant="h6"
+          noWrap
+          component="div"
+          sx={{ fontWeight: 700, color: "primary.main" }}
+        >
           Notes App
         </Typography>
-      </Toolbar>
+      </Box>
       <Divider />
       <Box sx={{ p: 2 }}>
         <Button
@@ -164,18 +193,58 @@ const Layout: React.FC = () => {
           startIcon={<NoteAddIcon />}
           fullWidth
           onClick={handleCreateNote}
+          sx={{
+            py: 1.5,
+            borderRadius: 2,
+            fontSize: "1rem",
+            fontWeight: 600,
+            background: "linear-gradient(90deg, #4f46e5 0%, #6366f1 100%)",
+            boxShadow:
+              "0 4px 6px -1px rgba(79, 70, 229, 0.2), 0 2px 4px -1px rgba(79, 70, 229, 0.1)",
+            "&:hover": {
+              background: "linear-gradient(90deg, #4338ca 0%, #4f46e5 100%)",
+            },
+          }}
         >
           New Note
         </Button>
       </Box>
-      <List>
+      <List sx={{ flexGrow: 1 }}>
         {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
+          <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
             <ListItemButton
               selected={location.pathname === item.path}
               onClick={() => handleNavigate(item.path)}
+              sx={{
+                borderRadius: 2,
+                mx: 1,
+                "&.Mui-selected": {
+                  backgroundColor: "rgba(79, 70, 229, 0.1)",
+                  "&:hover": {
+                    backgroundColor: "rgba(79, 70, 229, 0.15)",
+                  },
+                  "& .MuiListItemIcon-root": {
+                    color: "primary.main",
+                  },
+                  "& .MuiListItemText-primary": {
+                    color: "primary.main",
+                    fontWeight: 600,
+                  },
+                },
+                "&:hover": {
+                  backgroundColor: "rgba(0, 0, 0, 0.04)",
+                },
+              }}
             >
-              <ListItemIcon>
+              <ListItemIcon
+                sx={{
+                  minWidth: 40,
+                  color:
+                    location.pathname === item.path
+                      ? "primary.main"
+                      : "text.secondary",
+                }}
+              >
                 {item.count > 0 ? (
                   <Badge badgeContent={item.count} color="primary">
                     {item.icon}
@@ -184,12 +253,39 @@ const Layout: React.FC = () => {
                   item.icon
                 )}
               </ListItemIcon>
-              <ListItemText primary={item.text} />
+              <ListItemText
+                primary={item.text}
+                sx={{
+                  "& .MuiListItemText-primary": {
+                    fontWeight: location.pathname === item.path ? 600 : 400,
+                  },
+                }}
+              />
             </ListItemButton>
           </ListItem>
         ))}
       </List>
-    </div>
+      <Divider />
+      <Box sx={{ p: 2 }}>
+        <Button
+          variant="outlined"
+          startIcon={<SettingsIcon />}
+          fullWidth
+          sx={{
+            py: 1.2,
+            borderRadius: 2,
+            borderColor: "rgba(0,0,0,0.1)",
+            color: "text.primary",
+            "&:hover": {
+              borderColor: "rgba(0,0,0,0.2)",
+              backgroundColor: "rgba(0,0,0,0.02)",
+            },
+          }}
+        >
+          Settings
+        </Button>
+      </Box>
+    </Box>
   );
 
   const profileMenu = (
@@ -199,19 +295,37 @@ const Layout: React.FC = () => {
       onClose={handleProfileMenuClose}
       transformOrigin={{ horizontal: "right", vertical: "top" }}
       anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+      PaperProps={{
+        sx: {
+          mt: 1.5,
+          borderRadius: 2,
+          boxShadow:
+            "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+        },
+      }}
     >
+      <Box sx={{ px: 2, py: 1.5 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+          {user?.name || "User"}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {user?.email}
+        </Typography>
+      </Box>
+      <Divider />
       <MenuItem
         onClick={() => {
           handleProfileMenuClose();
           /* Navigate to profile page */
         }}
+        sx={{ py: 1.5 }}
       >
         <ListItemIcon>
           <PersonIcon fontSize="small" />
         </ListItemIcon>
         <ListItemText>Profile</ListItemText>
       </MenuItem>
-      <MenuItem onClick={handleLogout}>
+      <MenuItem onClick={handleLogout} sx={{ py: 1.5 }}>
         <ListItemIcon>
           <LogoutIcon fontSize="small" />
         </ListItemIcon>
@@ -229,7 +343,9 @@ const Layout: React.FC = () => {
         position="fixed"
         sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
-          boxShadow: 1,
+          boxShadow:
+            "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+          background: "linear-gradient(90deg, #4f46e5 0%, #6366f1 100%)",
         }}
       >
         <Toolbar>
@@ -243,30 +359,87 @@ const Layout: React.FC = () => {
             <MenuIcon />
           </IconButton>
 
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {isMobile ? "Notes App" : ""}
-          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              flexGrow: 1,
+            }}
+          >
+            <Box
+              component="img"
+              src="/logo-small.svg"
+              alt="Notes App Logo"
+              sx={{
+                width: 32,
+                height: 32,
+                display: { xs: "none", md: "block" },
+              }}
+            />
+            <Typography
+              variant="h6"
+              noWrap
+              component="div"
+              sx={{ fontWeight: 700, display: { xs: "none", md: "block" } }}
+            >
+              Notes App
+            </Typography>
+          </Box>
 
           {/* Search Bar */}
-          <IconButton color="inherit" sx={{ mr: 1 }}>
-            <SearchIcon />
-          </IconButton>
-
-          {/* Profile Avatar */}
-          <IconButton
-            edge="end"
-            onClick={handleProfileMenuOpen}
-            color="inherit"
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              backgroundColor: "rgba(255, 255, 255, 0.1)",
+              borderRadius: 2,
+              px: 2,
+              py: 0.5,
+              mr: 2,
+              width: { xs: "auto", sm: 300 },
+            }}
           >
-            <Avatar alt={user?.name || "User"} sx={{ width: 32, height: 32 }}>
-              {user?.name?.charAt(0) || "U"}
-            </Avatar>
-          </IconButton>
-          {profileMenu}
+            <SearchIcon sx={{ color: "rgba(255, 255, 255, 0.7)", mr: 1 }} />
+            <input
+              type="text"
+              placeholder="Search notes..."
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "white",
+                outline: "none",
+                width: "100%",
+              }}
+            />
+          </Box>
+
+          {/* User Profile */}
+          <Tooltip title="Account settings">
+            <IconButton
+              onClick={handleProfileMenuOpen}
+              size="small"
+              sx={{ ml: 2 }}
+              aria-controls={Boolean(anchorEl) ? "account-menu" : undefined}
+              aria-haspopup="true"
+              aria-expanded={Boolean(anchorEl) ? "true" : undefined}
+            >
+              <Avatar
+                sx={{
+                  width: 32,
+                  height: 32,
+                  bgcolor: "secondary.main",
+                  fontWeight: 600,
+                }}
+              >
+                {user?.name?.charAt(0) || "U"}
+              </Avatar>
+            </IconButton>
+          </Tooltip>
         </Toolbar>
       </AppBar>
 
-      {/* Sidebar Drawer */}
+      {/* Drawer */}
       <Box
         component="nav"
         sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
@@ -277,7 +450,7 @@ const Layout: React.FC = () => {
           open={mobileOpen}
           onClose={handleDrawerToggle}
           ModalProps={{
-            keepMounted: true, // Better mobile performance
+            keepMounted: true, // Better open performance on mobile.
           }}
           sx={{
             display: { xs: "block", md: "none" },
@@ -298,6 +471,7 @@ const Layout: React.FC = () => {
             "& .MuiDrawer-paper": {
               boxSizing: "border-box",
               width: drawerWidth,
+              borderRight: "none",
             },
           }}
           open
@@ -306,20 +480,27 @@ const Layout: React.FC = () => {
         </Drawer>
       </Box>
 
-      {/* Main Content */}
+      {/* Main content */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           p: 3,
           width: { md: `calc(100% - ${drawerWidth}px)` },
-          overflow: "auto",
-          height: "100%",
+          mt: 8,
+          backgroundColor: "#f9fafb",
+          minHeight: "100vh",
         }}
       >
-        <Toolbar /> {/* Spacer for fixed AppBar */}
-        <Outlet />
+        <Fade in timeout={500}>
+          <Box sx={{ maxWidth: 1400, mx: "auto" }}>
+            <Outlet />
+          </Box>
+        </Fade>
       </Box>
+
+      {/* Profile Menu */}
+      {profileMenu}
     </Box>
   );
 };

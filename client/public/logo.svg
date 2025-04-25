@@ -1,0 +1,20 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="90" fill="#4f46e5" />
+  
+  <!-- Note paper shape -->
+  <path d="M60 50C60 45.5817 63.5817 42 68 42H132C136.418 42 140 45.5817 140 50V150C140 154.418 136.418 158 132 158H68C63.5817 158 60 154.418 60 150V50Z" fill="white" />
+  
+  <!-- Folded corner -->
+  <path d="M132 42L140 50H132V42Z" fill="#e5e7eb" />
+  
+  <!-- Lines representing text -->
+  <rect x="75" y="70" width="50" height="4" rx="2" fill="#4f46e5" />
+  <rect x="75" y="85" width="40" height="4" rx="2" fill="#4f46e5" />
+  <rect x="75" y="100" width="45" height="4" rx="2" fill="#4f46e5" />
+  <rect x="75" y="115" width="35" height="4" rx="2" fill="#4f46e5" />
+  
+  <!-- Pen icon -->
+  <path d="M110 120L130 140L120 150L100 130L110 120Z" fill="#ec4899" />
+  <path d="M125 135L115 125L110 120L120 130L125 135Z" fill="#ec4899" />
+</svg> 

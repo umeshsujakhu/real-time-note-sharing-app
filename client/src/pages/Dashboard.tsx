@@ -1,19 +1,44 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Typography,
   Box,
-  CircularProgress,
-  Alert,
+  Grid,
+  Typography,
   Button,
-  Fab,
-  Snackbar,
+  IconButton,
+  Card,
+  CardContent,
+  CardActions,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Chip,
+  Tooltip,
+  Fade,
+  useTheme,
+  useMediaQuery,
+  InputAdornment,
 } from "@mui/material";
-import { Add as AddIcon } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
-import NoteCard from "../components/NoteCard";
-import ShareDialog from "../components/ShareDialog";
-import SearchBar from "../components/SearchBar";
+import {
+  MoreVert as MoreVertIcon,
+  Delete as DeleteIcon,
+  Archive as ArchiveIcon,
+  Share as ShareIcon,
+  Edit as EditIcon,
+  AccessTime as AccessTimeIcon,
+  Search as SearchIcon,
+} from "@mui/icons-material";
 import { useNoteStore } from "../stores/noteStore";
+import { useAuthStore } from "../stores/authStore";
+import { useNavigate } from "react-router-dom";
+import { formatDistanceToNow } from "date-fns";
+import ShareDialog from "../components/ShareDialog";
+import { GridProps } from "@mui/material/Grid";
 
 interface Note {
   id: string;
@@ -27,238 +52,337 @@ interface Note {
   };
   version: number;
   isArchived: boolean;
+  sharedWith?: Array<{
+    id: string;
+    email: string;
+  }>;
+}
+
+interface ShareDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (email: string) => Promise<void>;
 }
 
 const Dashboard: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
   const {
     notes,
-    searchResults,
-    searchQuery,
-    isLoading,
-    error,
-    fetchNotes,
-    createNote,
     deleteNote,
     archiveNote,
-    initializeSocket,
-    disconnectSocket,
-    set,
+    updateNote,
+    shareNote,
+    fetchNotes,
+    createNote,
   } = useNoteStore();
 
-  const navigate = useNavigate();
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
   const [notification, setNotification] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    // Initialize the socket connection for real-time updates
-    initializeSocket();
-
-    // Fetch notes when component mounts
     fetchNotes();
+  }, [fetchNotes]);
 
-    // Cleanup function to disconnect socket when component unmounts
-    return () => {
-      disconnectSocket();
-    };
-  }, [initializeSocket, fetchNotes, disconnectSocket]);
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, note: Note) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedNote(note);
+  };
 
-  const handleNoteClick = (noteId: string) => {
-    navigate(`/notes/${noteId}`);
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedNote(null);
+  };
+
+  const handleDelete = async () => {
+    if (selectedNote) {
+      await deleteNote(selectedNote.id);
+      handleMenuClose();
+    }
+  };
+
+  const handleArchive = async () => {
+    if (selectedNote) {
+      await archiveNote(selectedNote.id);
+      handleMenuClose();
+    }
+  };
+
+  const handleShare = () => {
+    setShareDialogOpen(true);
+    handleMenuClose();
+  };
+
+  const handleEdit = () => {
+    if (selectedNote) {
+      setEditTitle(selectedNote.title);
+      setEditContent(selectedNote.content);
+      setEditDialogOpen(true);
+      handleMenuClose();
+    }
+  };
+
+  const handleEditSave = async () => {
+    if (selectedNote) {
+      await updateNote(selectedNote.id, {
+        title: editTitle,
+        content: editContent,
+      });
+      setEditDialogOpen(false);
+    }
+  };
+
+  const handleShareSubmit = async (email: string) => {
+    if (selectedNote) {
+      await shareNote(selectedNote.id, email, "read");
+      setShareDialogOpen(false);
+    }
   };
 
   const handleCreateNewNote = async () => {
     try {
-      const newNoteId = await createNote({
+      const noteId = await createNote({
         title: "Untitled Note",
         content: "",
       });
-
-      if (newNoteId) {
-        // Wait a brief moment to ensure the note is fully created
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        // Navigate to the new note
-        navigate(`/notes/${newNoteId}`);
-      } else {
-        setNotification("Failed to create new note");
+      if (noteId) {
+        navigate(`/notes/${noteId}`);
       }
     } catch (error) {
-      console.error("Error creating new note:", error);
-      setNotification("Failed to create new note");
+      console.error("Error creating note:", error);
     }
   };
 
-  const handleDeleteNote = async (noteId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    if (window.confirm("Are you sure you want to delete this note?")) {
-      await deleteNote(noteId);
-    }
-  };
-
-  const handleArchiveNote = async (noteId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    await archiveNote(noteId);
-  };
-
-  const handleShareNote = (noteId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    setSelectedNoteId(noteId);
-    setShareDialogOpen(true);
-  };
-
-  const handleCloseShareDialog = () => {
-    setShareDialogOpen(false);
-    setSelectedNoteId(null);
-    // Refresh notes to show any new sharing status
-    fetchNotes();
-    setNotification("Share settings updated");
-  };
-
-  const handleCloseNotification = () => {
-    setNotification(null);
-  };
-
-  // Determine which notes to display based on search state
-  const displayedNotes = searchQuery ? searchResults : notes;
-
-  if (isLoading && notes.length === 0 && searchResults.length === 0) {
+  const filteredNotes = notes.filter((note) => {
+    const searchLower = searchQuery.toLowerCase();
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        height="100%"
-      >
-        <CircularProgress />
-      </Box>
+      note.title.toLowerCase().includes(searchLower) ||
+      note.content.toLowerCase().includes(searchLower)
     );
-  }
+  });
 
   return (
-    <Box className="relative">
+    <Box sx={{ py: 4 }}>
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={3}
-      >
-        <Typography variant="h4" component="h1">
-          My Notes
-        </Typography>
-
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={handleCreateNewNote}
-        >
-          New Note
-        </Button>
-      </Box>
-
-      <SearchBar />
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-
-      {displayedNotes.length === 0 ? (
-        <Box
-          display="flex"
-          flexDirection="column"
-          alignItems="center"
-          justifyContent="center"
-          py={8}
-        >
-          {searchQuery ? (
-            <Typography variant="h6" color="textSecondary" gutterBottom>
-              No notes found matching "{searchQuery}"
-            </Typography>
-          ) : (
-            <>
-              <Typography variant="h6" color="textSecondary" gutterBottom>
-                You don't have any notes yet
-              </Typography>
-              <Typography variant="body1" color="textSecondary" gutterBottom>
-                Create your first note to get started
-              </Typography>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<AddIcon />}
-                onClick={handleCreateNewNote}
-                sx={{ mt: 2 }}
-              >
-                Create Note
-              </Button>
-            </>
-          )}
-        </Box>
-      ) : (
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-          {displayedNotes.map((note) => (
-            <Box
-              key={note.id}
-              sx={{
-                width: {
-                  xs: "100%",
-                  sm: "calc(50% - 12px)",
-                  md: "calc(33.33% - 16px)",
-                  lg: "calc(25% - 18px)",
-                },
-                mb: 2,
-              }}
-            >
-              <NoteCard
-                note={{
-                  ...note,
-                  archived: note.isArchived,
-                }}
-                onClick={() => handleNoteClick(note.id)}
-                onDelete={(e: React.MouseEvent) => handleDeleteNote(note.id, e)}
-                onArchive={() =>
-                  handleArchiveNote(note.id, {} as React.MouseEvent)
-                }
-                onShare={(e: React.MouseEvent) => handleShareNote(note.id, e)}
-              />
-            </Box>
-          ))}
-        </Box>
-      )}
-
-      {/* Share Dialog */}
-      {selectedNoteId && (
-        <ShareDialog
-          open={shareDialogOpen}
-          onClose={handleCloseShareDialog}
-          noteId={selectedNoteId}
-        />
-      )}
-
-      {/* Notification Snackbar */}
-      <Snackbar
-        open={notification !== null}
-        autoHideDuration={3000}
-        onClose={handleCloseNotification}
-        message={notification}
-      />
-
-      {/* Mobile floating action button for creating new notes */}
-      <Fab
-        color="primary"
-        aria-label="add"
-        onClick={handleCreateNewNote}
         sx={{
-          position: "fixed",
-          bottom: 24,
-          right: 24,
-          display: { xs: "flex", sm: "none" },
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 4,
+          flexDirection: { xs: "column", sm: "row" },
+          gap: 2,
         }}
       >
-        <AddIcon />
-      </Fab>
+        <Box>
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{
+              fontWeight: 700,
+              background: "linear-gradient(90deg, #4f46e5 0%, #6366f1 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              mb: 1,
+            }}
+          >
+            My Notes
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Create and manage your notes
+          </Typography>
+        </Box>
+        <Box
+          sx={{ display: "flex", gap: 2, width: { xs: "100%", sm: "auto" } }}
+        >
+          <TextField
+            placeholder="Search notes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            sx={{
+              minWidth: { xs: "100%", sm: 300 },
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+              },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Button
+            variant="contained"
+            startIcon={<EditIcon />}
+            onClick={handleCreateNewNote}
+            sx={{
+              py: 1.5,
+              px: 3,
+              borderRadius: 2,
+              fontSize: "1rem",
+              fontWeight: 600,
+              background: "linear-gradient(90deg, #4f46e5 0%, #6366f1 100%)",
+              boxShadow:
+                "0 4px 6px -1px rgba(79, 70, 229, 0.2), 0 2px 4px -1px rgba(79, 70, 229, 0.1)",
+              "&:hover": {
+                background: "linear-gradient(90deg, #4338ca 0%, #4f46e5 100%)",
+              },
+            }}
+          >
+            New Note
+          </Button>
+        </Box>
+      </Box>
+
+      <Grid container spacing={3}>
+        {filteredNotes.map((note) => (
+          <Grid
+            key={note.id}
+            size={{ xs: 12, sm: 6, md: 4 }}
+            sx={{ display: "flex", width: "100%" }}
+          >
+            <Card
+              sx={{ width: "100%", display: "flex", flexDirection: "column" }}
+            >
+              <CardContent sx={{ flexGrow: 1 }}>
+                <Typography variant="h6" component="h2">
+                  {note.title}
+                </Typography>
+                <Typography color="textSecondary" gutterBottom>
+                  Last updated: {new Date(note.updatedAt).toLocaleDateString()}
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => navigate(`/notes/${note.id}`)}
+                >
+                  Open Note
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* Note Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        PaperProps={{
+          sx: {
+            mt: 1.5,
+            borderRadius: 2,
+            boxShadow:
+              "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+          },
+        }}
+      >
+        <MenuItem onClick={handleEdit} sx={{ py: 1.5 }}>
+          <ListItemIcon>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Edit</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleShare} sx={{ py: 1.5 }}>
+          <ListItemIcon>
+            <ShareIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Share</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleArchive} sx={{ py: 1.5 }}>
+          <ListItemIcon>
+            <ArchiveIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Archive</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleDelete} sx={{ py: 1.5, color: "error.main" }}>
+          <ListItemIcon>
+            <DeleteIcon fontSize="small" color="error" />
+          </ListItemIcon>
+          <ListItemText>Delete</ListItemText>
+        </MenuItem>
+      </Menu>
+
+      {/* Edit Dialog */}
+      <Dialog
+        open={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+          },
+        }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Edit Note
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Title"
+            fullWidth
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            margin="dense"
+            label="Content"
+            fullWidth
+            multiline
+            rows={4}
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            onClick={() => setEditDialogOpen(false)}
+            sx={{
+              color: "text.secondary",
+              "&:hover": {
+                backgroundColor: "rgba(0, 0, 0, 0.04)",
+              },
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleEditSave}
+            variant="contained"
+            sx={{
+              background: "linear-gradient(90deg, #4f46e5 0%, #6366f1 100%)",
+              "&:hover": {
+                background: "linear-gradient(90deg, #4338ca 0%, #4f46e5 100%)",
+              },
+            }}
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Share Dialog */}
+      <ShareDialog
+        open={shareDialogOpen}
+        onClose={() => setShareDialogOpen(false)}
+        noteId={selectedNote?.id || ""}
+      />
     </Box>
   );
 };

@@ -213,7 +213,7 @@ export const getCurrentUser = async (req: any, res: any) => {
         message: "Not authenticated",
       });
     }
-
+    console.log(req.currentUser);
     res.status(200).json({
       success: true,
       data: {

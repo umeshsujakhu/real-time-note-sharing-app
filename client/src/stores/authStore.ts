@@ -43,6 +43,7 @@ export const useAuthStore = create<AuthState>()(
           // Extract user and token - adjust path based on API response
           const data = response.data.data || response.data;
           const user = data.user || data;
+          console.log("set user", user);
           const token = data.token;
 
           if (!token) {
@@ -187,7 +188,7 @@ export const useAuthStore = create<AuthState>()(
           // Handle response format from server
           if (response.data && response.data.success === true) {
             const userData = response.data.data;
-
+            console.log("userdata", userData);
             set({
               user: userData,
               isAuthenticated: true,

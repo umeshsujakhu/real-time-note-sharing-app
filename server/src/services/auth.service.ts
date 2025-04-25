@@ -154,7 +154,7 @@ export class AuthService {
 
     // @ts-ignore - Temporarily ignoring TS error to get things running
     return jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { userId: user.id, email: user.email, role: user.role, name: user.name },
       secret,
       { expiresIn }
     );

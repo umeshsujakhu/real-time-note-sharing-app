@@ -35,8 +35,7 @@ const ArchivedNotes: React.FC = () => {
     navigate(`/notes/${noteId}`);
   };
 
-  const handleUnarchive = async (noteId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
+  const handleUnarchive = async (noteId: string) => {
     await unarchiveNote(noteId);
   };
 

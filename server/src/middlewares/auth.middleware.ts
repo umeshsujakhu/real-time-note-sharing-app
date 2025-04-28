@@ -14,6 +14,7 @@ declare global {
         userId: string;
         email: string;
         role: UserRole;
+        name: string;
       };
     }
   }
@@ -51,6 +52,7 @@ export const authenticate = async (
       userId: string;
       email: string;
       role: UserRole;
+      name: string;
     };
 
     // Check if user exists
